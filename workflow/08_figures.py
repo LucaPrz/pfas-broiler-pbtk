@@ -25,7 +25,8 @@ COMPOUNDS = ("PFOS", "PFNA")
 
 
 def save(fig, name: str) -> None:
-    for suffix, options in ((".png", {"dpi": 600}), (".pdf", {})):
+    # No creation date in the PDF, so that unchanged figures stay byte-identical.
+    for suffix, options in ((".png", {"dpi": 600}), (".pdf", {"metadata": {"CreationDate": None}})):
         fig.savefig(FIGURES_DIR / f"{name}{suffix}", bbox_inches="tight", **options)
     plt.close(fig)
     print(f"wrote {FIGURES_DIR / name}.png/.pdf")

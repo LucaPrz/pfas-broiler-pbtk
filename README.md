@@ -45,11 +45,12 @@ pip install -e . --no-deps
 ## Worked example
 
 ```bash
-python examples/worked_example.py               # PFOS, 1 µg/kg feed
-python examples/worked_example.py --feed 2.0 --stop-day 25
+python examples/worked_example.py                                  # PFOS, 1 µg/kg feed
+python examples/worked_example.py --compound PFNA --feed 0.5 --stop-day 25
 ```
 
-For a given PFOS concentration in the feed, the example computes the concentrations in
+For a given PFAS concentration in the feed (`--compound` PFOS, PFNA, PFOA, PFDA or PFHxS),
+the example computes the concentrations in
 muscle, liver and kidney at slaughter, both for exposure until slaughter and after an
 earlier switch to clean feed. It also computes the tolerable feed level of each tissue
 with its 95 % credible interval. It needs only the base installation (no JAX).
@@ -81,6 +82,7 @@ src/pfas_broiler/
   analysis/      feed limits, transfer factors and kinetics, predictions, goodness of fit
   plots.py       figures
   paths.py       locations of data and results
+run_all.sh       runs the workflow
 workflow/        numbered scripts that produce everything in results/
 examples/        worked example
 results/         outputs of the workflow
@@ -89,7 +91,14 @@ tests/           unit and regression tests
 
 ## Reproducing the results
 
-Run the steps in order from the repository root:
+One command runs the whole workflow:
+
+```bash
+bash run_all.sh          # steps 3–8 from the shipped posterior, about 1 min
+bash run_all.sh --full   # steps 1–8, including the fit and the posterior, about 30 min
+```
+
+The individual steps (each can also be run on its own, e.g. `python workflow/04_feed_limits.py`):
 
 | Step | Script | Output | Runtime |
 |---|---|---|---|
@@ -102,8 +111,9 @@ Run the steps in order from the repository root:
 | 7 | `workflow/07_parameter_tables.py` | `results/tables/` (parameter tables) | seconds |
 | 8 | `workflow/08_figures.py` | `results/figures/` (PNG 600 dpi and PDF) | < 1 min |
 
-The results of steps 1 and 2 are part of the repository, so steps 3–8 can be run on their
-own in about a minute.
+The results of steps 1 and 2 are part of the repository, which is why the default run
+starts at step 3. Rerunning the workflow reproduces `results/` byte for byte (with the
+package versions in `requirements-lock.txt`), so `git status` shows any change.
 
 ### Where each result of the article comes from
 
