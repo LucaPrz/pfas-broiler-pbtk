@@ -10,19 +10,18 @@ Runtime: under a minute.
 import pandas as pd
 
 from pfas_broiler.analysis.estimates import point_parameters, posterior_samples
-from pfas_broiler.analysis.feed_limits import tolerable_feed_levels
-from pfas_broiler.config import EU_MAXIMUM_LEVEL
+from pfas_broiler.analysis.feed_limits import tfl_tissues, tolerable_feed_levels
+from pfas_broiler.config import COMPOUNDS
 from pfas_broiler.paths import TABLES_DIR
 
 
 def main() -> None:
     tables = [
         tolerable_feed_levels(c, point_parameters(c), posterior_samples(c))
-        for c in EU_MAXIMUM_LEVEL
+        for c in COMPOUNDS
+        if tfl_tissues(c)
     ]
     table = pd.concat(tables, ignore_index=True)
-    # The binding TFL of a compound is the lowest across its tissues.
-    table["binding"] = table["tfl"] == table.groupby("compound")["tfl"].transform("min")
 
     TABLES_DIR.mkdir(parents=True, exist_ok=True)
     out = TABLES_DIR / "tolerable_feed_levels.csv"

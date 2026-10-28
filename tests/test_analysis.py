@@ -28,8 +28,25 @@ def predictions():
     }
 
 
-@pytest.mark.parametrize("compound", ["PFOS", "PFNA", "PFOA", "PFHxS"])
-def test_tolerable_feed_levels(compound):
+def test_tfl_only_for_measured_partition_coefficients():
+    """The article's rule: TFLs for tissues with measured partition coefficients;
+    read-across (PFOA muscle) is indicative; literature values (PFHxS) get none."""
+    assert feed_limits.tfl_tissues("PFOS") == dict.fromkeys(
+        ("muscle", "liver", "kidney"), "measured"
+    )
+    assert feed_limits.tfl_tissues("PFOA") == {
+        "muscle": "read-across",
+        "liver": "measured",
+        "kidney": "measured",
+    }
+    assert feed_limits.tfl_tissues("PFHxS") == {}
+    assert feed_limits.tfl_tissues("PFDA") == {}  # no EU maximum level
+
+
+@pytest.mark.parametrize(
+    "compound, binding", [("PFOS", "muscle"), ("PFNA", "kidney"), ("PFOA", "kidney")]
+)
+def test_tolerable_feed_levels(compound, binding):
     ref = pd.read_csv(PRODUCTION / "feed_limits.csv")
     ref = ref[ref["compound"] == compound].set_index("tissue")
     table = feed_limits.tolerable_feed_levels(
@@ -43,6 +60,7 @@ def test_tolerable_feed_levels(compound):
         ("tfl_ci_upper", "tfl_ci_upper"),
     ]:
         np.testing.assert_allclose(table[column], ref.loc[table.index, ref_column], rtol=RTOL)
+    assert table.index[table["binding"]].tolist() == [binding]
 
 
 @pytest.mark.parametrize("compound", ["PFOS", "PFNA"])

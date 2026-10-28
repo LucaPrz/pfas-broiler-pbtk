@@ -86,6 +86,16 @@ def _median_ratio(compound: str, isomer: str, tissue: str) -> float:
     return value
 
 
+def partition_basis(compound: str, tissue: str) -> str:
+    """Where a tissue's partition coefficient comes from: "measured" (this study),
+    "read-across" (homologous compound) or "literature"."""
+    if (compound, tissue) in LITERATURE_VALUES:
+        return "literature"
+    if (compound, tissue) in READ_ACROSS:
+        return "read-across"
+    return "measured"
+
+
 def partition_coefficients(compound: str, isomer: str = "Linear") -> PartitionCoefficients:
     """Partition coefficients used in the model for one analyte.
 

@@ -21,6 +21,7 @@ import numpy as np
 
 from pfas_broiler import ModelParameters, scenario_intake, simulate
 from pfas_broiler.analysis.estimates import point_estimate, posterior_samples
+from pfas_broiler.analysis.feed_limits import tfl_tissues
 from pfas_broiler.config import COMPOUNDS, EU_MAXIMUM_LEVEL, SLAUGHTER_DAY
 from pfas_broiler.partitions import LITERATURE_VALUES, READ_ACROSS
 
@@ -63,8 +64,15 @@ def main(
                 f"{READ_ACROSS[(compound, tissue)]} ({tissue} below LOQ in this study)."
             )
 
+    tissues = tfl_tissues(compound)
     if not limits:
         print(f"\nNo EU maximum level for {compound}; no tolerable feed level.")
+        return
+    if not tissues:
+        print(
+            f"\nNo tolerable feed level for {compound}: TFLs are derived only for tissues "
+            "whose partition coefficient was measured in this study."
+        )
         return
 
     # 3: the model is linear in the intake, so TFL = ML / (concentration per µg/kg feed).
@@ -78,11 +86,12 @@ def main(
 
     print(f"\nTolerable feed levels ({len(samples)} posterior samples)")
     for j, tissue in enumerate(TISSUES):
-        if tissue not in limits:
+        if tissue not in tissues:
             continue
         point = limits[tissue] / continuous.concentration(tissue)[SLAUGHTER_DAY] * feed
         lower, upper = np.percentile(limits[tissue] / per_unit_feed[:, j], [2.5, 97.5])
-        print(f"  {tissue:8} TFL = {point:.3f} µg/kg feed  (95 % CI {lower:.3f}–{upper:.3f})")
+        note = "  (indicative: read-across)" if tissues[tissue] == "read-across" else ""
+        print(f"  {tissue:8} TFL = {point:.3f} µg/kg feed  (95 % CI {lower:.3f}–{upper:.3f}){note}")
 
 
 if __name__ == "__main__":
