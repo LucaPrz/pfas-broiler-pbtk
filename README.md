@@ -13,17 +13,35 @@ workflow that produces every model result reported in the article
 Six compartments: stomach (with crop), liver, plasma, kidney, muscle and rest of body. The
 intestine is in instantaneous partition equilibrium with the liver (enterohepatic
 reservoir, intestine:liver partition coefficient P_il). Exchange between plasma and the
-organs is flow-limited and governed by tissue:plasma partition coefficients measured in
-the study. PFAS are eliminated from plasma with a first-order rate k_elim. Organ volumes
-and blood flows change with body weight, which follows a Gompertz growth curve fitted to
-the study birds.
+organs is flow-limited and governed by tissue:plasma partition coefficients. These were
+measured in the study, except where the tissue values were below the limit of
+quantification: PFOA and PFDA muscle are read across from PFNA, and PFHxS uses literature
+values. PFAS are eliminated from plasma with a first-order rate k_elim. Organ volumes and
+blood flows change with body weight, which follows a Gompertz growth curve fitted to the
+study birds.
 
 Two parameters per compound, k_elim and P_il, were estimated from the tissue
 concentrations of five exposure groups with staggered ends of exposure. Values below the
-limit of quantification are treated as left-censored. Parameter uncertainty comes from
-the exact Bayesian posterior on a grid, and is propagated to all outputs with 4000
-posterior samples. Details: article, Section [TODO], and the docstrings of
-`src/pfas_broiler/model.py` and `src/pfas_broiler/inference/`.
+limit of quantification are treated as left-censored. For PFHxS, P_il is taken from PFOS
+and only k_elim is fitted. Parameter uncertainty comes from the exact Bayesian posterior
+on a grid, and is propagated to all outputs with 4000 posterior samples. Details: article,
+Section [TODO], and the docstrings of `src/pfas_broiler/model.py` and
+`src/pfas_broiler/inference/`.
+
+**Tolerable feed levels.** The model is linear in the intake, so the feed concentration
+at which a tissue just reaches its EU maximum level (Regulation (EU) 2023/915) at
+slaughter is TFL = ML / (tissue concentration per µg/kg feed). As in the article, TFLs
+are derived only for tissues whose partition coefficient was measured in this study:
+
+| Compound | TFL for | Note |
+|---|---|---|
+| PFOS, PFNA | muscle, liver, kidney | |
+| PFOA | liver, kidney; muscle indicative only | muscle partition coefficient read across from PFNA; never the binding tissue |
+| PFHxS | none | partition coefficients from the literature |
+| PFDA | none | no EU maximum level |
+
+The binding TFL of a compound is the lowest TFL among its tissues with measured partition
+coefficients.
 
 ## Installation
 
@@ -49,11 +67,19 @@ python examples/worked_example.py                                  # PFOS, 1 µg
 python examples/worked_example.py --compound PFNA --feed 0.5 --stop-day 25
 ```
 
-For a given PFAS concentration in the feed (`--compound` PFOS, PFNA, PFOA, PFDA or PFHxS),
-the example computes the concentrations in
-muscle, liver and kidney at slaughter, both for exposure until slaughter and after an
-earlier switch to clean feed. It also computes the tolerable feed level of each tissue
-with its 95 % credible interval. It needs only the base installation (no JAX).
+For a given feed concentration of one compound (`--compound` PFOS, PFNA, PFOA, PFDA or
+PFHxS; default PFOS), the example computes:
+
+1. the concentrations in muscle, liver and kidney at slaughter (day 35) when the diet is
+   fed until slaughter, compared with the EU maximum levels;
+2. the same concentrations after an earlier switch to clean feed (`--stop-day`);
+3. the tolerable feed levels with their 95 % credible intervals, for the tissues listed
+   in the table above.
+
+For PFDA and PFHxS it reports the tissue concentrations and explains why no TFL is given.
+Partition coefficients that are read across or taken from the literature are pointed out
+in the output. The example needs only the base installation (no JAX) and runs in about
+10 s. Its PFOS and PFNA results reproduce Table 4 of the article.
 
 The model can also be used directly:
 
