@@ -9,7 +9,7 @@ three questions for a given PFOS concentration in the feed:
 3. Which feed concentration keeps each tissue at its EU maximum level
    (tolerable feed level, TFL), with its 95 % credible interval?
 
-Requires only the base installation (no JAX). Runtime about 30 s.
+Requires only the base installation (no JAX). Runtime about 10 s.
 
     python examples/worked_example.py
     python examples/worked_example.py --feed 2.0 --stop-day 25
@@ -49,17 +49,10 @@ def main(feed: float = 1.0, stop_day: int = 25, n_samples: int | None = None) ->
     samples = posterior_samples(COMPOUND)
     if n_samples is not None:
         samples = samples[:n_samples]
-    per_unit_feed = np.array(
-        [
-            [
-                simulate(
-                    ModelParameters.for_compound(COMPOUND, k, p), scenario_intake(1.0)
-                ).concentration(tissue)[SLAUGHTER_DAY]
-                for tissue in TISSUES
-            ]
-            for k, p in samples
-        ]
-    )
+    per_unit_feed = np.empty((len(samples), len(TISSUES)))
+    for i, (k_elim, p_il) in enumerate(samples):
+        sim = simulate(ModelParameters.for_compound(COMPOUND, k_elim, p_il), scenario_intake(1.0))
+        per_unit_feed[i] = [sim.concentration(t)[SLAUGHTER_DAY] for t in TISSUES]
     print(f"Tolerable feed levels ({len(samples)} posterior samples)")
     for j, tissue in enumerate(TISSUES):
         point = limits[tissue] / continuous.concentration(tissue)[SLAUGHTER_DAY] * feed
