@@ -2,6 +2,7 @@
 
 Input:  results/point_estimates.csv (step 1; the grid is centred on it)
 Output: results/posterior/samples_<compound>.csv  (4000 samples)
+        results/posterior/grid_<compound>.npz      (posterior grid, for the figures)
         results/posterior/summary.csv              (median, 95 % credible interval)
 Runtime: several minutes per compound (240 x 240 grid); requires JAX.
 
@@ -15,7 +16,12 @@ import pandas as pd
 
 from pfas_broiler.config import COMPOUNDS
 from pfas_broiler.inference.posterior import grid_posterior
-from pfas_broiler.paths import POINT_ESTIMATES, POSTERIOR_DIR, posterior_samples_file
+from pfas_broiler.paths import (
+    POINT_ESTIMATES,
+    POSTERIOR_DIR,
+    posterior_grid_file,
+    posterior_samples_file,
+)
 
 N_SAMPLES = 4000
 SEED = 0
@@ -38,6 +44,7 @@ def main() -> None:
         fixed = {p: v for p, v in center.items() if p not in fitted}
 
         post = grid_posterior(compound, center, fixed)
+        post.save(posterior_grid_file(compound))
         pd.DataFrame(post.sample(N_SAMPLES, seed=SEED)).to_csv(
             posterior_samples_file(compound), index=False, float_format="%.10g"
         )

@@ -4,14 +4,8 @@ With one or two fitted parameters, the posterior can be computed exactly by
 evaluating the likelihood on a dense grid instead of sampling it with MCMC.
 Priors are uniform in log10 of each parameter and uniform in sigma; sigma is
 integrated out numerically. Posterior samples are drawn from the grid cells
-(with uniform jitter within the cell).
-
-The forward model is evaluated in batches with JAX. It is not a second
-implementation of the model: the rate matrix is affine in k_elim and in the liver
-fraction g = 1 / (1 + P_il V_int / V_liver), so its constant part and both slopes
-are taken from :func:`pfas_broiler.model.rate_matrix_from_fraction`, and the JAX
-code only combines them and solves the linear ODE on daily steps exactly as
-:func:`pfas_broiler.model.simulate` does.
+(with uniform jitter within the cell). The forward model is evaluated in batches
+with JAX (:mod:`pfas_broiler.batched`).
 """
 
 from __future__ import annotations
@@ -21,84 +15,20 @@ from dataclasses import dataclass
 import jax
 import jax.numpy as jnp
 import numpy as np
-from jax.scipy.linalg import expm
 
-from ..config import GROUPS, SLAUGHTER_DAY
-from ..exposure import study_intake
-from ..model import COMPARTMENTS, INDEX, rate_matrix_from_fraction
-from ..partitions import partition_coefficients
-from ..physiology import physiology
+from ..batched import BatchedModel
+from ..model import INDEX
 from .likelihood import SIGMA_BOUNDS, Observations, log_likelihood_grid, observations
-
-jax.config.update("jax_enable_x64", True)
 
 PARAMETERS = ("k_elim", "P_il")
 _LOG_EPS = 1e-10
-
-
-class BatchedModel:
-    """Concentrations of all study groups for many parameter sets at once.
-
-    ``concentrations(theta)`` takes theta = (k_elim, P_il) and returns an array
-    (group, day, compartment) of concentrations (µg/L) for days 0..n_days.
-    """
-
-    def __init__(
-        self,
-        compound: str,
-        groups: tuple[str, ...] = GROUPS,
-        n_days: int = SLAUGHTER_DAY,
-        isomer: str = "Linear",
-    ):
-        self.groups = tuple(groups)
-        self.n_days = n_days
-        pc = partition_coefficients(compound, isomer)
-        phys = [physiology(float(day)) for day in range(n_days + 1)]
-
-        # Affine decomposition per day: T = T0 + k_elim * Dk + g * Dg.
-        t0 = np.stack([rate_matrix_from_fraction(pc, p, 0.0, 0.0) for p in phys[:-1]])
-        dk = np.stack([rate_matrix_from_fraction(pc, p, 1.0, 0.0) for p in phys[:-1]]) - t0
-        dg = np.stack([rate_matrix_from_fraction(pc, p, 0.0, 1.0) for p in phys[:-1]]) - t0
-        self._t0, self._dk, self._dg = jnp.asarray(t0), jnp.asarray(dk), jnp.asarray(dg)
-        self._intestine_to_liver = jnp.asarray(
-            [p.volume["intestine"] / p.volume["liver"] for p in phys[:-1]]
-        )
-
-        intake = np.zeros((len(groups), n_days, len(COMPARTMENTS)))
-        for i, group in enumerate(groups):
-            intake[i, :, INDEX["stomach"]] = study_intake(group, compound, isomer, n_days)
-        self._intake = jnp.asarray(intake)
-        self._volumes = jnp.asarray(
-            [[p.volume[c] for c in COMPARTMENTS] for p in phys]
-        )  # (day, compartment)
-
-        self.concentrations = jax.jit(self._concentrations)
-
-    def _concentrations(self, theta: jnp.ndarray) -> jnp.ndarray:
-        k_elim, p_il = theta[0], theta[1]
-        g = 1.0 / (1.0 + self._intestine_to_liver * p_il)  # (day,)
-        rate = self._t0 + k_elim * self._dk + g[:, None, None] * self._dg
-
-        def run_group(intake):
-            def step(amount, inputs):
-                T, u = inputs
-                steady = -jnp.linalg.solve(T, u)
-                new = steady + expm(T) @ (amount - steady)
-                return new, new
-
-            start = jnp.zeros(len(COMPARTMENTS))
-            _, amounts = jax.lax.scan(step, start, (rate, intake))
-            return jnp.concatenate([start[None, :], amounts])
-
-        amounts = jax.vmap(run_group)(self._intake)  # (group, day, compartment)
-        return amounts / self._volumes[None, :, :]
 
 
 class CellPredictor:
     """log10 predictions in the observation cells for a batch of parameter sets."""
 
     def __init__(self, model: BatchedModel, obs: Observations):
-        group_index = {g: i for i, g in enumerate(model.groups)}
+        group_index = {g: i for i, g in enumerate(model.scenarios)}
         g = jnp.asarray([group_index[group] for group, _, _ in obs.cells])
         d = jnp.asarray([day for _, day, _ in obs.cells])
         c = jnp.asarray([INDEX[comp] for _, _, comp in obs.cells])
@@ -157,6 +87,21 @@ class GridPosterior:
         within_cell = np.sinh(half) / half  # mean of 10**u, u uniform on the cell
         return float(np.sum(values * probabilities) * within_cell)
 
+    def save(self, path) -> None:
+        """Save the grid to a NumPy .npz file."""
+        np.savez_compressed(
+            path,
+            names=np.array(self.names),
+            weights=self.weights,
+            **{f"log_grid_{n}": g for n, g in zip(self.names, self.log_grids, strict=True)},
+        )
+
+    @classmethod
+    def load(cls, path) -> GridPosterior:
+        with np.load(path) as f:
+            names = tuple(str(n) for n in f["names"])
+            return cls(names, tuple(f[f"log_grid_{n}"] for n in names), f["weights"])
+
     def sample(self, n: int = 4000, seed: int = 0) -> dict[str, np.ndarray]:
         """Draw grid cells by their probability, with uniform jitter within a cell."""
         rng = np.random.default_rng(seed)
@@ -198,7 +143,7 @@ def grid_posterior(
     )
 
     obs = observations(compound)
-    predict = CellPredictor(BatchedModel(compound, groups=tuple(obs.groups)), obs)
+    predict = CellPredictor(BatchedModel.for_study_groups(compound, groups=tuple(obs.groups)), obs)
     sigma = np.linspace(SIGMA_BOUNDS[0], SIGMA_BOUNDS[1], n_sigma)
     ll = np.empty((n_points, n_sigma))
     for start in range(0, n_points, batch_size):

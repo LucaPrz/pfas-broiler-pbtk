@@ -15,7 +15,18 @@ RESULTS_DIR = Path(os.environ.get("PFAS_BROILER_RESULTS", REPOSITORY / "results"
 
 POINT_ESTIMATES = RESULTS_DIR / "point_estimates.csv"
 POSTERIOR_DIR = RESULTS_DIR / "posterior"
+PREDICTIONS_DIR = RESULTS_DIR / "predictions"
+TABLES_DIR = RESULTS_DIR / "tables"
+FIGURES_DIR = RESULTS_DIR / "figures"
 
 
 def posterior_samples_file(compound: str) -> Path:
     return POSTERIOR_DIR / f"samples_{compound}.csv"
+
+
+def posterior_grid_file(compound: str) -> Path:
+    return POSTERIOR_DIR / f"grid_{compound}.npz"
+
+
+def predictions_file(compound: str) -> Path:
+    return PREDICTIONS_DIR / f"study_groups_{compound}.csv"

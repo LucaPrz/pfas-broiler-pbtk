@@ -22,7 +22,7 @@ from scipy.optimize import minimize_scalar
 from scipy.special import log_ndtr
 
 from .. import data
-from ..config import LOQ, TISSUES
+from ..config import LOQ, MATRIX_TO_COMPARTMENT, TISSUES
 
 LOG10_LOQ = float(np.log10(LOQ))
 
@@ -30,13 +30,6 @@ LOG10_LOQ = float(np.log10(LOQ))
 SIGMA_BOUNDS: tuple[float, float] = (0.02, 1.2)
 
 _LOG_SQRT_2PI = 0.5 * float(np.log(2.0 * np.pi))
-#: Measured matrix -> model compartment (serum is modelled as plasma).
-_MATRIX_TO_COMPARTMENT = {
-    "serum": "plasma",
-    "liver": "liver",
-    "kidney": "kidney",
-    "muscle": "muscle",
-}
 
 
 @dataclass(frozen=True)
@@ -75,7 +68,7 @@ def observations(compound: str, isomer: str = "Linear") -> Observations:
     """Observations of one analyte in serum (as plasma), liver, kidney and muscle."""
     df = data.tissue_concentrations()
     df = df[(df["compound"] == compound) & (df["isomer"] == isomer)].copy()
-    df["compartment"] = df["matrix"].map(_MATRIX_TO_COMPARTMENT)
+    df["compartment"] = df["matrix"].map(MATRIX_TO_COMPARTMENT)
     df = df[df["compartment"].isin(TISSUES)].dropna(subset=["concentration"])
 
     cells = sorted(set(zip(df["group"], df["day"].astype(int), df["compartment"], strict=True)))

@@ -1,0 +1,4 @@
+day,body_weight_g,plasma_percent_bw,liver_percent_bw,stomach_percent_bw,intestine_percent_bw,kidney_percent_bw,muscle_percent_bw,rest_percent_bw
+1,48.504,3.34719,4.59025,3.5,8.26245,0.838521,36.73,42.7316
+15,808.229,3.34719,2.50738,3.5,4.51328,0.665479,36.73,48.7367
+35,2640.23,3.34719,1.94407,3.5,3.49933,0.603803,42.1007,45.0049

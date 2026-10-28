@@ -1,0 +1,16 @@
+compound,tissue,value_used,source,median,q25,q75,n
+PFOS,liver,0.766018,this study,0.766018,0.526107,1.15471,134
+PFOS,kidney,0.810457,this study,0.810457,0.572756,1.1553,134
+PFOS,muscle,0.12987,this study,0.12987,0.105235,0.210532,106
+PFNA,liver,0.598571,this study,0.598571,0.393258,0.962865,129
+PFNA,kidney,1.62229,this study,1.62229,1.00932,2.71286,134
+PFNA,muscle,0.104313,this study,0.104313,0.0854649,0.179465,83
+PFOA,liver,0.39553,this study,0.39553,0.36029,0.44978,22
+PFOA,kidney,2.40081,this study,2.40081,1.10166,3.15924,53
+PFOA,muscle,0.104313,read-across from PFNA,,,,0
+PFDA,liver,0.705045,this study,0.705045,0.602667,0.950254,74
+PFDA,kidney,0.745019,this study,0.745019,0.612658,0.931127,78
+PFDA,muscle,0.104313,read-across from PFNA,,,,0
+PFHxS,liver,0.207,literature,,,,0
+PFHxS,kidney,0.438,literature,,,,0
+PFHxS,muscle,0.05,literature,,,,0

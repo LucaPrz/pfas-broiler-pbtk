@@ -34,17 +34,14 @@ def test_observations_pfos():
 
 
 jax = pytest.importorskip("jax")
-from pfas_broiler.inference.posterior import (  # noqa: E402
-    BatchedModel,
-    CellPredictor,
-    grid_posterior,
-)
+from pfas_broiler.batched import BatchedModel  # noqa: E402
+from pfas_broiler.inference.posterior import CellPredictor, grid_posterior  # noqa: E402
 
 
 @pytest.mark.parametrize("compound", ["PFOS", "PFNA", "PFHxS"])
 def test_batched_model_matches_numpy_model(compound):
     obs = observations(compound)
-    predict = CellPredictor(BatchedModel(compound, groups=tuple(obs.groups)), obs)
+    predict = CellPredictor(BatchedModel.for_study_groups(compound, groups=tuple(obs.groups)), obs)
     for scale in (0.5, 1.0, 2.0):
         k_elim, p_il = FITTED.loc[compound, "k_elim"] * scale, FITTED.loc[compound, "P_il"]
         numpy = predicted_log10(compound, ModelParameters.for_compound(compound, k_elim, p_il), obs)

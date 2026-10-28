@@ -63,6 +63,11 @@ def organ_weights() -> pd.DataFrame:
     return _read_csv("raw/organ_weights.csv").copy()
 
 
+def ross308_body_weight() -> pd.DataFrame:
+    """Body-weight objectives of male Ross 308 broilers. Columns: day, body_weight_g."""
+    return _read_csv("literature/ross308_male_body_weight.csv").copy()
+
+
 def ross308_meat_yield() -> pd.DataFrame:
     """Deboned meat yield of male Ross 308 broilers (% of live weight).
 

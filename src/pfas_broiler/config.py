@@ -23,6 +23,14 @@ SLAUGHTER_DAY = 35
 #: Tissues measured and predicted. Serum was measured; it is modelled as plasma.
 TISSUES: tuple[str, ...] = ("plasma", "liver", "kidney", "muscle")
 
+#: Measured matrix -> model compartment.
+MATRIX_TO_COMPARTMENT: dict[str, str] = {
+    "serum": "plasma",
+    "liver": "liver",
+    "kidney": "kidney",
+    "muscle": "muscle",
+}
+
 #: Limit of quantification, uniform for all analytes and matrices
 #: (µg/kg tissue, µg/L serum).
 LOQ = 0.5

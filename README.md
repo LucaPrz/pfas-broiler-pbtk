@@ -43,9 +43,12 @@ src/pfas_broiler/
   exposure.py    daily PFAS intake
   model.py       PBTK model and solver
   paths.py       locations of data and results
-  inference/     censored likelihood, point fit, grid posterior (JAX)
+  batched.py     the model for many parameter sets at once (JAX)
+  inference/     censored likelihood, point fit, grid posterior
+  analysis/      feed limits, transfer factors and kinetics, predictions, goodness of fit
+  plots.py       figures
 workflow/        numbered scripts that produce everything in results/
-results/         outputs of the workflow (posterior samples are shipped, see below)
+results/         outputs of the workflow
 tests/           unit and regression tests
 ```
 
@@ -56,13 +59,35 @@ order from the repository root:
 
 | Step | Script | Output | Runtime |
 |---|---|---|---|
-| 1 | `python workflow/01_point_estimates.py` | `results/point_estimates.csv` | ~5 min |
-| 2 | `python workflow/02_posterior.py` | `results/posterior/` | ~10–30 min |
+| 1 | `workflow/01_point_estimates.py` | `results/point_estimates.csv` | ~5 min |
+| 2 | `workflow/02_posterior.py` | `results/posterior/` | ~10–30 min |
+| 3 | `workflow/03_predictions.py` | `results/predictions/study_groups_*.csv` | < 1 min |
+| 4 | `workflow/04_feed_limits.py` | `results/tables/tolerable_feed_levels.csv` | < 1 min |
+| 5 | `workflow/05_transfer_and_kinetics.py` | `results/tables/transfer_and_kinetics.csv` | seconds |
+| 6 | `workflow/06_goodness_of_fit.py` | `results/tables/goodness_of_fit.csv` | seconds |
+| 7 | `workflow/07_parameter_tables.py` | `results/tables/` (parameter tables) | seconds |
+| 8 | `workflow/08_figures.py` | `results/figures/` (PNG 600 dpi and PDF) | < 1 min |
 
-[TODO: remaining steps and the mapping of figures and tables in the article to scripts.]
+The results of steps 1 and 2 are part of the repository, so steps 3–8 can be run on their
+own in about two minutes.
 
-The posterior samples are part of the repository, so later steps can be run without
-repeating steps 1 and 2.
+### Where each result of the article comes from
+
+| Article | File in `results/` | Step |
+|---|---|---|
+| Fig. 2 growth curve | `figures/growth_curve` | 8 |
+| Fig. 4 predicted vs observed | `figures/observed_vs_predicted` | 8 |
+| Figs. 5, 6 concentration–time (PFOS, PFNA) | `figures/concentration_time_PFOS`, `_PFNA` | 8 |
+| Table 3 TF, BTF, TR, t½, MRT | `tables/transfer_and_kinetics.csv` | 5 |
+| Table 4 tolerable feed levels | `tables/tolerable_feed_levels.csv` | 4 |
+| Table S15 growth model | `tables/growth_parameters.csv` | 7 |
+| Table S16 physiology | `tables/physiology.csv` | 7 |
+| Table S17 partition coefficients | `tables/partition_coefficients.csv` | 7 |
+| Table S18 fitted parameters, goodness of fit | `tables/fitted_parameters.csv` | 7 |
+| Fig. S4 joint posterior (PFOS, PFNA) | `figures/posterior_PFOS`, `_PFNA` | 8 |
+
+Fig. 1 (model structure) is a drawing and not produced by code. Numbering refers to the
+submitted manuscript. [TODO: update after final numbering.]
 
 `results/` was produced with the exact package versions in `requirements-lock.txt`.
 With other versions of SciPy the point estimates can differ in the 5th significant digit
