@@ -52,20 +52,28 @@ def test_batched_model_matches_numpy_model(compound):
         np.testing.assert_allclose(batched, numpy, atol=1e-9)
 
 
-@pytest.mark.parametrize("compound", ["PFOS", "PFNA", "PFHxS"])
-def test_grid_posterior_matches_original(compound):
-    """Coarse grid (25 points, +/- 0.25 decades) against the original code."""
-    ref = pd.read_csv(REFERENCE / "posterior_grid_npts25_decades025.csv")
-    ref = ref[ref["compound"] == compound].set_index("parameter")
+def _coarse_posterior(compound):
+    """Coarse grid (25 points, +/- 0.25 decades) around the fitted point."""
     center = {p: FITTED.loc[compound, p] for p in ("k_elim", "P_il")}
-    post = grid_posterior(compound, center, _fixed(compound), npts=25, decades=0.25)
-    for name in post.names:
-        expected = ref.loc[name, ["q025", "q25", "q50", "q75", "q975"]].to_numpy(dtype=float)
-        q = post.quantiles(name, [0.025, 0.25, 0.5, 0.75, 0.975])
-        np.testing.assert_allclose(q, expected, rtol=1e-8)
-        assert post.mean(name) == pytest.approx(ref.loc[name, "mean"], rel=1e-8)
+    return grid_posterior(compound, center, _fixed(compound), npts=25, decades=0.25)
 
+
+@pytest.mark.parametrize("compound", ["PFOS", "PFNA", "PFHxS"])
+def test_grid_posterior_samples_match_original(compound):
+    post = _coarse_posterior(compound)
     samples = post.sample(500, seed=0)
     expected = pd.read_csv(REFERENCE / f"posterior_samples_npts25_{compound}.csv")
     for name in post.names:
         np.testing.assert_allclose(samples[name], expected[name], rtol=1e-8)
+
+
+@pytest.mark.parametrize("compound", ["PFOS", "PFNA"])
+def test_grid_quantiles_and_mean_agree_with_samples(compound):
+    post = _coarse_posterior(compound)
+    samples = post.sample(400_000, seed=1)
+    probs = [0.025, 0.25, 0.5, 0.75, 0.975]
+    for name in post.names:
+        np.testing.assert_allclose(
+            post.quantiles(name, probs), np.quantile(samples[name], probs), rtol=3e-3
+        )
+        assert post.mean(name) == pytest.approx(samples[name].mean(), rel=1e-3)

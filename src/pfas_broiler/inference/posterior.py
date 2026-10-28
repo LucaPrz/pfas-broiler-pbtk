@@ -118,6 +118,10 @@ class CellPredictor:
 class GridPosterior:
     """Posterior on a regular grid in log10 parameter space.
 
+    Each grid point is the centre of a cell of width ``step`` (log10), and the
+    posterior mass of a cell is spread uniformly across it (in log10). Quantiles,
+    means and samples all follow this convention.
+
     names     : fitted parameters (grid axes).
     log_grids : grid points per parameter, log10 scale.
     weights   : posterior probability per grid cell, shape (npts,) * len(names).
@@ -127,21 +131,31 @@ class GridPosterior:
     log_grids: tuple[np.ndarray, ...]
     weights: np.ndarray
 
+    def step(self, name: str) -> float:
+        """Cell width of one parameter's grid (log10)."""
+        grid = self.log_grids[self.names.index(name)]
+        return float(grid[1] - grid[0])
+
     def marginal(self, name: str) -> tuple[np.ndarray, np.ndarray]:
-        """(values, probabilities) of the marginal posterior of one parameter."""
+        """(values at the cell centres, probabilities) of one parameter's marginal."""
         j = self.names.index(name)
         others = tuple(k for k in range(len(self.names)) if k != j)
         return 10.0 ** self.log_grids[j], self.weights.sum(axis=others)
 
     def quantiles(self, name: str, probs) -> np.ndarray:
-        """Marginal quantiles by interpolating the cumulative distribution."""
-        values, probabilities = self.marginal(name)
-        cumulative = np.cumsum(probabilities)
-        return np.interp(probs, cumulative / cumulative[-1], values)
+        """Marginal quantiles; the cumulative distribution is linear within a cell."""
+        _, probabilities = self.marginal(name)
+        grid, half = self.log_grids[self.names.index(name)], 0.5 * self.step(name)
+        edges = np.append(grid - half, grid[-1] + half)
+        cumulative = np.concatenate([[0.0], np.cumsum(probabilities)])
+        return 10.0 ** np.interp(probs, cumulative / cumulative[-1], edges)
 
     def mean(self, name: str) -> float:
+        """Posterior mean (exact for mass spread uniformly in log10 within a cell)."""
         values, probabilities = self.marginal(name)
-        return float(np.sum(values * probabilities))
+        half = 0.5 * self.step(name) * np.log(10.0)
+        within_cell = np.sinh(half) / half  # mean of 10**u, u uniform on the cell
+        return float(np.sum(values * probabilities) * within_cell)
 
     def sample(self, n: int = 4000, seed: int = 0) -> dict[str, np.ndarray]:
         """Draw grid cells by their probability, with uniform jitter within a cell."""

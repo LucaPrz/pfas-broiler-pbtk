@@ -64,6 +64,11 @@ order from the repository root:
 The posterior samples are part of the repository, so later steps can be run without
 repeating steps 1 and 2.
 
+`results/` was produced with the exact package versions in `requirements-lock.txt`.
+With other versions of SciPy the point estimates can differ in the 5th significant digit
+(the optimum is flat in P_il); the effect on all reported results is far below their
+Monte Carlo error.
+
 ## Tests
 
 ```bash
