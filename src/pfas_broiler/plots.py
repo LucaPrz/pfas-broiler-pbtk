@@ -12,7 +12,7 @@ import pandas as pd  # noqa: E402
 from matplotlib.gridspec import GridSpec  # noqa: E402
 from matplotlib.lines import Line2D  # noqa: E402
 from matplotlib.patches import Patch  # noqa: E402
-from matplotlib.ticker import FormatStrFormatter  # noqa: E402
+from matplotlib.ticker import FormatStrFormatter, FuncFormatter  # noqa: E402
 
 from . import data  # noqa: E402
 from .config import EU_MAXIMUM_LEVEL, EXPOSURE_STOP_DAY, GROUPS, LOQ, MATRIX_TO_COMPARTMENT  # noqa: E402
@@ -32,6 +32,8 @@ STYLE = {
     "mathtext.rm": "Arial",
     "mathtext.it": "Arial:italic",
     "mathtext.bf": "Arial:bold",
+    "mathtext.sf": "Arial",
+    "mathtext.cal": "Arial",
     "pdf.fonttype": 42,  # embed TrueType fonts in vector output
 }
 GROUP_COLORS = {g: f"C{i}" for i, g in enumerate(GROUPS)}
@@ -372,6 +374,17 @@ def concentration_time(compound: str, predictions: pd.DataFrame) -> plt.Figure:
     return fig
 
 
+def _plain_log_labels(axis) -> None:
+    """Label log-axis ticks as plain numbers (0.1, 2, 3) instead of 1e-1, 2x10^0."""
+
+    def minor(value, _):  # label only 2, 3 and 5 between decades, to avoid crowding
+        leading = round(value / 10 ** np.floor(np.log10(value)))
+        return f"{value:g}" if leading in (2, 3, 5) else ""
+
+    axis.set_major_formatter(FuncFormatter(lambda value, _: f"{value:g}"))
+    axis.set_minor_formatter(FuncFormatter(minor))
+
+
 def posterior(post) -> plt.Figure:
     """Joint posterior of (k_elim, P_il) with both marginals; one curve for one parameter.
 
@@ -395,6 +408,7 @@ def posterior(post) -> plt.Figure:
         for q, ls in zip(post.quantiles(name, probs), styles, strict=True):
             ax.axvline(q, color="C3", lw=1.2, ls=ls)
         ax.set_xscale("log")
+        _plain_log_labels(ax.xaxis)
         ax.set_xlim(*view(name))
         ax.set_xlabel(tex[name])
         ax.set_ylabel("posterior probability")
@@ -413,6 +427,8 @@ def posterior(post) -> plt.Figure:
     mesh = ax.pcolormesh(x, y, density, shading="auto", cmap="viridis")
     ax.set_xscale("log")
     ax.set_yscale("log")
+    _plain_log_labels(ax.xaxis)
+    _plain_log_labels(ax.yaxis)
     ax.set_xlabel(tex[x_name])
     ax.set_ylabel(tex[y_name])
     ax.text(0.04, 0.04, "joint posterior", transform=ax.transAxes, color="white", fontsize=10)
@@ -428,8 +444,8 @@ def posterior(post) -> plt.Figure:
         right.axhline(q, color="C3", lw=1.0, ls=ls)
     top.set_ylabel(f"marginal\n{tex[x_name]}", fontsize=10)
     right.set_xlabel(f"marginal\n{tex[y_name]}", fontsize=10)
-    plt.setp(top.get_xticklabels(), visible=False)
-    plt.setp(right.get_yticklabels(), visible=False)
+    top.tick_params(axis="x", which="both", labelbottom=False)
+    right.tick_params(axis="y", which="both", labelleft=False)
     top.set_yticks([])
     right.set_xticks([])
 
