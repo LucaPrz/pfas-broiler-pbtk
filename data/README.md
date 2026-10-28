@@ -4,14 +4,13 @@ All files are CSV (comma-separated, UTF-8, `.` as decimal separator).
 
 ## Study data (`raw/`)
 
-Feeding study with male broilers [TODO: strain, Ross 308 or Ross 500 — check against the
-methods section]. Day 1 is the day of placement (8 October 2024), slaughter on day 35. Five
+Feeding study with male Ross 308 broilers. Day 1 is the day of placement (8 October 2024), slaughter on day 35. Five
 groups (E1–E5) received a diet containing PFAS-contaminated fishmeal until day 16, 23, 28, 32
 and 35, respectively, and clean feed afterwards.
 
 | File | Content | Units |
 |---|---|---|
-| `tissue_concentrations.csv` | PFAS concentration per animal in serum, liver, kidney and muscle. Each group was sampled at the end of its exposure and on day 35 (5 birds per group and day; 4 for E4 on day 35, 9 for E5 on day 35). Values below the limit of quantification (LOQ = 0.5) are recorded as `0`. [TODO: which muscle was sampled] | µg/kg wet weight; serum µg/L |
+| `tissue_concentrations.csv` | PFAS concentration per animal in serum, liver, kidney and breast muscle. Each group was sampled at the end of its exposure and on day 35 (5 birds per group and day; 4 for E4 on day 35, 9 for E5 on day 35). Values below the limit of quantification (LOQ = 0.5) are recorded as `0`. | µg/kg wet weight; serum µg/L |
 | `feed_intake.csv` | Daily feed consumption per pen (`feed_intake_g`) and number of birds in the pen (`n_birds`). | g/pen/day |
 | `feed_concentration.csv` | PFAS concentration in the contaminated diet used in the model (see below). | µg/kg feed, 88 % dry matter |
 | `body_weight.csv` | Individual body weights during the study. | g |
