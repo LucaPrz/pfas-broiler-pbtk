@@ -70,14 +70,26 @@ class ModelParameters:
 
 def rate_matrix(params: ModelParameters, phys: Physiology) -> np.ndarray:
     """Rate matrix T (1/d) with dA/dt = T A + u; column = source, row = target."""
+    return rate_matrix_from_fraction(
+        params.partition, phys, params.k_elim, params.liver_fraction(phys), params.k_sto
+    )
+
+
+def rate_matrix_from_fraction(
+    pc: PartitionCoefficients, phys: Physiology, k_elim: float, g: float, k_sto: float = K_STO
+) -> np.ndarray:
+    """Rate matrix in terms of the liver fraction g of the gut-liver pool.
+
+    T is affine in k_elim and g, which the batched forward model in
+    :mod:`pfas_broiler.inference.posterior` uses.
+    """
     i = INDEX
-    v, q, pc = phys.volume, phys.flow, params.partition
-    g = params.liver_fraction(phys)
+    v, q = phys.volume, phys.flow
     T = np.zeros((len(COMPARTMENTS), len(COMPARTMENTS)))
 
     # Stomach empties into the gut-liver pool; the fraction g reaches the liver.
-    T[i["stomach"], i["stomach"]] = -params.k_sto
-    T[i["liver"], i["stomach"]] = params.k_sto * g
+    T[i["stomach"], i["stomach"]] = -k_sto
+    T[i["liver"], i["stomach"]] = k_sto * g
 
     # Liver <-> plasma. Outflow depends on the liver amount itself (not scaled);
     # the pool's loss and the return flow from plasma are scaled by g.
@@ -88,7 +100,7 @@ def rate_matrix(params: ModelParameters, phys: Physiology) -> np.ndarray:
 
     # Plasma: outflow to all organs plus elimination.
     total_flow = q["hepatic"] + q["kidney"] + q["muscle"] + q["rest"]
-    T[i["plasma"], i["plasma"]] = -total_flow / v["plasma"] - params.k_elim
+    T[i["plasma"], i["plasma"]] = -total_flow / v["plasma"] - k_elim
 
     # Flow-limited exchange between plasma and kidney, muscle and rest.
     for organ, p in (("muscle", pc.muscle), ("kidney", pc.kidney), ("rest", pc.rest)):

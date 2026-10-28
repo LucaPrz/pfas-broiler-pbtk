@@ -1,19 +1,16 @@
 """Loaders for the input data in ``data/``.
 
 All loaders are cached and return a fresh copy, so callers may modify the result.
-The data directory defaults to ``<repository>/data`` and can be overridden with
-the ``PFAS_BROILER_DATA`` environment variable.
+For the location of the data folder see :mod:`pfas_broiler.paths`.
 """
 
 from __future__ import annotations
 
-import os
 from functools import cache
-from pathlib import Path
 
 import pandas as pd
 
-DATA_DIR = Path(os.environ.get("PFAS_BROILER_DATA", Path(__file__).resolve().parents[2] / "data"))
+from .paths import DATA_DIR
 
 
 @cache

@@ -6,6 +6,11 @@ from __future__ import annotations
 COMPOUNDS: tuple[str, ...] = ("PFOS", "PFNA", "PFOA", "PFDA", "PFHxS")
 ISOMER = "Linear"
 
+#: Compounds whose data cannot identify P_il (all PFHxS tissues are below the
+#: LOQ); P_il is taken from the fit of a structurally similar compound and only
+#: k_elim is fitted. compound -> donor compound.
+P_IL_READ_ACROSS: dict[str, str] = {"PFHxS": "PFOS"}
+
 #: Exposure groups. All birds were placed on day 1; group Ek received the
 #: contaminated diet up to and including ``EXPOSURE_STOP_DAY[Ek]`` and clean feed
 #: afterwards (depuration). E5 was exposed until slaughter.

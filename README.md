@@ -27,7 +27,7 @@ params = ModelParameters.for_compound("PFOS", k_elim=0.144, P_il=2.47)
 
 # Diet with 1 µg PFOS per kg feed from day 1 to slaughter (day 35)
 sim = simulate(params, scenario_intake(1.0))
-print(sim.concentration("muscle")[35])   # µg/kg in muscle at slaughter
+print(sim.concentration("muscle")[35])  # µg/kg in muscle at slaughter
 ```
 
 ## Repository structure
@@ -42,8 +42,27 @@ src/pfas_broiler/
   partitions.py  tissue:plasma partition coefficients
   exposure.py    daily PFAS intake
   model.py       PBTK model and solver
+  paths.py       locations of data and results
+  inference/     censored likelihood, point fit, grid posterior (JAX)
+workflow/        numbered scripts that produce everything in results/
+results/         outputs of the workflow (posterior samples are shipped, see below)
 tests/           unit and regression tests
 ```
+
+## Reproducing the results
+
+Install with the Bayesian extra (`pip install -e ".[dev,bayes]"`), then run the steps in
+order from the repository root:
+
+| Step | Script | Output | Runtime |
+|---|---|---|---|
+| 1 | `python workflow/01_point_estimates.py` | `results/point_estimates.csv` | ~5 min |
+| 2 | `python workflow/02_posterior.py` | `results/posterior/` | ~10–30 min |
+
+[TODO: remaining steps and the mapping of figures and tables in the article to scripts.]
+
+The posterior samples are part of the repository, so later steps can be run without
+repeating steps 1 and 2.
 
 ## Tests
 
@@ -52,7 +71,8 @@ pytest
 ```
 
 The regression tests check that the package reproduces the results of the original
-analysis code to a relative tolerance of 1e-9.
+analysis code: model trajectories and likelihood values to a relative tolerance of 1e-9,
+and the grid posterior (on a coarse test grid) to 1e-8.
 
 ## Citation
 
